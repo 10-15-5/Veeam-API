@@ -1,59 +1,78 @@
-import re
 import requests
-import json
 import os
+import json
+import time
 
 
-def getenvirondetails():
-    url = os.environ.get("VEEAM_URL_TOKEN")
-    headers = os.environ.get("VEEAM_HEADER_TOKEN")
-    payload = os.environ.get("VEEAM_PAYLOAD_TOKEN")
+class Token():
 
-    header_dict = json.loads(headers)
+    def __init__(self):
+        self.url = os.environ.get("VEEAM_URL")
+        self.headers = os.environ.get("VEEAM_HEADER")
+        self.payload = os.environ.get("VEEAM_PAYLOAD_TOKEN")
 
-    getToken(url, header_dict, payload)
+    def getToken(self):
+        header_dict = json.loads(self.headers)
+        tokenurl = self.url + "Token"
+        response = requests.post(tokenurl, verify=False, data=self.payload, headers=header_dict).json()
 
+        access_token = response["access_token"]
+        #       localtime = time.asctime(time.localtime(time.time()))
 
-def getToken(url, headers, payload):
-    response = requests.post(url, verify=False, data=payload, headers=headers)
-
-    access_token = response.json()["access_token"]
-
-    backuprepositories(access_token)
-
-
-def backuprepositories(access):
-    accessnew = "Bearer " + access
-    headers = os.environ.get("VEEAM_HEADER_BACKUPREPO")
-    url = os.environ.get("VEEAM_URL_BACKUPREPO")
-    header_dict = json.loads(headers)
-    header_dict['Authorization'] = accessnew
-
-    response = requests.get(url, verify=False, headers=header_dict)
-
-    cleanup(response.json())
+        return access_token
 
 
-def cleanup(r):
-    strR = str(r)
-    newstring = (strR.replace('"', '').replace(' ', '').replace("'", '').replace('{', '').replace('}',
-                                                                   '').replace('[','').replace("]",""))
-    list = re.split(":|,", newstring)
+class Proxies():
 
-    getids(list)
+    def __init__(self, token):
+        self.token = token
+        self.url = os.environ.get("VEEAM_URL")
+        self.header = os.environ.get("VEEAM_HEADER_AUTH")
 
+    def getProxies(self):
+        proxyurl = self.url + "Proxies"
+        header_dict = json.loads(self.header)
+        accessnew = "Bearer " + self.token
+        header_dict["Authorization"] = accessnew
 
-def getids(list):
-    id = []
+        response = requests.get(proxyurl, verify=False, headers=header_dict).json()
 
-    for item in range(len(list)):
-        if list[item] == 'id':
-            id.append(list[item+1])
-
-    print(id)
-
+        return response
 
 
+class DisplayRepo():
+
+    def __init__(self, token):
+        self.token = token
+        self.url = os.environ.get("VEEAM_URL")
+        self.header = os.environ.get("VEEAM_HEADER_AUTH")
+
+    def displayRepos(self):
+        repourl = self.url + "BackupRepositories"
+        header_dict = json.loads(self.header)
+        accessnew = "Bearer " + self.token
+        header_dict["Authorization"] = accessnew
+
+        response = requests.get(repourl, verify=False, headers=header_dict).json()
+
+        return response
 
 
-getenvirondetails()
+'''
+class CreateRepo():
+    def __init__(self, name, proxyid, path, description, retentiontype, retentionperiodtype, retentionperiod,
+                 retentionfrequency, dailytime, dailytype):
+        self.name = name
+        self.proxyid = proxyid
+        self.path = path
+        self.description = description
+        self.retentiontype = retentiontype
+        self.retentionperiodtype = retentionperiodtype
+        self.retentionperiod = retentionperiod
+        self.retentionfrequency = retentionfrequency
+        self.dailytime = dailytime
+        self.dailytype = dailytype
+
+    def create(self):
+
+'''
