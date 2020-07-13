@@ -1,16 +1,18 @@
-import re
 from API import *
+import warnings
 
 
 def welcomeScreen():
     print("Welcome to the Veeam API requests program what would you like to do?")
-    print("1) Create a Repo\n2) Display Repos")
+    print("1) Create a Repo\n2) Display Repos\n3) Display Orgs")
     ans = input()
 
     if ans == "1":
         createarepo()
     elif ans == "2":
         displayrepos()
+    elif ans == "3":
+        displayorgs()
 
 
 def token():
@@ -53,8 +55,8 @@ def createarepo():
     payload["Description"] = description
     payload["RetentionType"] = retentiontype
     payload["RetentionPeriodType"] = retentionperiodtype
-    payload["RetentionPeriod"] = retentionperiod
-    payload["RetentionFrequency"] = retentionfrequency
+    payload["DailyRetentionPeriod"] = retentionperiod
+    payload["RetentionFrequencyType"] = retentionfrequency
 
     if retentionfrequency == 'Daily':
         dailytime = input("Daily Time (08:00:00):\t")
@@ -69,18 +71,21 @@ def createarepo():
         payload["MonthlyDayNumber"] = monthlydaynumber
         payload["MonthlyDayOfWeek"] = monthlydayofweek
 
-    repo = CreateRepo(payload)
+    repo = CreateRepo(payload, access)
     r = CreateRepo.create(repo)
+
+    print(r.json())
 
 
 def cleanup(r):
     strR = str(r)
     newstring = (strR.replace('"', '').replace(' ', '').replace("'", '').replace('{', '').replace('}',
-                                                               '').replace('[','').replace( "]", ""))
-    list = re.split(":|,", newstring)
+                                                                                                  '').replace('[',
+                                                                                                              '').replace(
+        "]", ""))
+    list = re.split("[:,]", newstring)
 
     return list
-
 
 
 def displayrepos():
@@ -98,6 +103,29 @@ def displayrepos():
     print(repos)
 
 
+def displayorgs():
+    access = token()
+
+    repo = DisplayRepo(access)
+    r = DisplayRepo.displayRepos(repo)
+    cleaned = cleanup(r)
+
+    repoid = []
+    for item in range(len(cleaned)):
+        if cleaned[item] == "id":
+            repoid.append(cleaned[item + 1])
+
+    orgs = []
+    for item in range(len(repoid)):
+        org = GetOrgs(access, repoid[item])
+        r = GetOrgs.orgs(org)
+
+        cleaned = cleanup(r)
+        if len(cleaned) > 1:
+            orgs.append(cleaned[1])
+
+    print(orgs)
 
 
+warnings.filterwarnings("ignore")
 welcomeScreen()
