@@ -41,7 +41,7 @@ class Token():
                     f = file.read()
                     file.close()
 
-            oldtoken = (f.replace("[", "").replace("]", "").replace("'",""))
+            oldtoken = (f.replace("[", "").replace("]", "").replace("'", ""))
             oldtoken = re.split(",", oldtoken)
 
             current = self.time.strftime("%Y-%m-%d %H:%M:%S")
@@ -63,7 +63,7 @@ class Token():
                     file.close()
                 return access_token
             else:
-                return oldtoken[1]
+                return str(oldtoken[1])
 
         except IOError:
             print("Stop")
@@ -120,7 +120,7 @@ class CreateRepo():
         header_dict["Authorization"] = accessnew
         header_dict["Content-Type"] = "application/json"
 
-        response = requests.post(createurl, verify=False, data=json.dumps(self.payload), headers=header_dict)
+        response = requests.post(createurl, verify=False, data=json.dumps(self.payload), headers=header_dict).json()
 
         return response
 
@@ -140,5 +140,45 @@ class GetOrgs():
         header_dict["Authorization"] = accessnew
 
         response = requests.get(orgurl, verify=False, headers=header_dict).json()
+
+        return response
+
+
+class CreateOrg():
+
+    def __init__(self, payload, token):
+        self.payload = payload
+        self.token = token
+        self.url = os.environ.get("VEEAM_URL")
+        self.header = os.environ.get("VEEAM_HEADER_AUTH")
+
+    def create(self):
+        orgurl = self.url + "Organizations"
+        header_dict = json.loads(self.header)
+        accessnew = "Bearer " + self.token
+        header_dict["Authorization"] = accessnew
+        header_dict["Content-Type"] = "application/json"
+
+        response = requests.post(orgurl, verify=False, data=json.dumps(self.payload), headers=header_dict).json()
+
+        return response
+
+
+class RemoveRepo():
+
+    def __init__(self, token, removeid):
+        self.token = token
+        self.removeid = removeid
+        self.url = os.environ.get("VEEAM_URL")
+        self.header = os.environ.get("VEEAM_HEADER_AUTH")
+
+    def remove(self):
+        remurl = self.url + "BackupRepositories/" + self.removeid
+        header_dict = json.loads(self.header)
+        accessnew = "Bearer " + self.token
+        header_dict["Authorization"] = accessnew
+        header_dict["Content-Type"] = "application/json"
+
+        response = requests.delete(remurl, verify=False, headers=header_dict).json()
 
         return response
