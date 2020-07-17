@@ -3,8 +3,16 @@ import warnings
 
 
 def welcomeScreen():
-    print("Welcome to the Veeam API requests program what would you like to do?")
-    print("1) Create a Repo\n2) Display Repos\n3) Display Orgs\n4) Create Organization\n5) Remove Repo")
+    print("Welcome to the Veeam API requests program are you Client or Admin")
+    ans = input().lower()
+
+    if ans == "c":
+        print("1) Create a Repo\t2) Display Repos\n3) Create Org\t\t4) Display Orgs\n5) Create a Job\t\t"
+              "6) Display all Jobs\t\t7) Modify a Job")
+    elif ans == "a":
+        print("1) Create a Repo\t\t2) Display Repos\n3) Create Org\t\t\t4) Display Org\n5) Create a Job\t\t\t"
+              "6) Display all Jobs\n7) Mod a Job's Settings\t8) Display Org Jobs\n9) Remove Repo\t\t\t10) Remove Org"
+              "\n11) Manage Jobs")
     ans = input()
 
     if ans == "1":
@@ -12,11 +20,23 @@ def welcomeScreen():
     elif ans == "2":
         displayrepos()
     elif ans == "3":
-        displayorgs()
-    elif ans == "4":
         createorg()
+    elif ans == "4":
+        displayorgs()
     elif ans == "5":
-        removeRepo()
+        createjob()
+    elif ans == "6":
+        displayalljobs()
+    elif ans == "7":
+        modifyjobsettings()
+    elif ans == "8":
+        displayorgjobs()
+    elif ans == "9":
+        removerepo()
+    elif ans == "10":
+        removeorg()
+    elif ans == "11":
+        managejobs()
 
 
 def token():
@@ -42,13 +62,77 @@ def proxy(access):
 def cleanup(r):
     strR = str(r)
     newstring = (strR.replace('"', '').replace(' ', '').replace("'", '').replace('{', '').replace('}',
-                                                                                                  '').replace('[',
-                                                                                                              '').replace(
-        "]", ""))
+                                                          '').replace('[', '').replace("]", ""))
     list = re.split("[:,]", newstring)
 
     return list
 
+
+def getrepodict(access):
+    temp = []
+    temp2 = []
+    repos = {}
+
+    repo = Display(access)
+    r = Display.repo(repo)
+    cleaned = cleanup(r)
+
+    for item in range(len(cleaned)):
+        if cleaned[item] == "name":
+            temp.append(cleaned[item + 1])
+    for item in range(len(cleaned)):
+        if cleaned[item] == "id":
+            temp2.append(cleaned[item + 1])
+
+    for item in range(len(temp)):
+        repos[temp[item]] = temp2[item]
+
+    return repos
+
+
+def getorgdict(access):
+    org = {}
+    temp = []
+    temp2 = []
+
+    orgs = Display(access)
+    r = Display.org(orgs)
+    cleaned = cleanup(r)
+
+    for item in range(len(cleaned)):
+        if cleaned[item] == "name":
+            temp.append(cleaned[item + 1])
+    for item in range(len(cleaned)):
+        if cleaned[item] == "id":
+            temp2.append(cleaned[item + 1])
+
+    for item in range(len(temp)):
+        org[temp[item]] = temp2[item]
+
+    return org
+
+
+def getalljobs(access):
+    jobs = {}
+    temp = []
+    temp2 = []
+    org = getorgdict(access)
+
+    for key in org:
+        job = DisplayJobs(access, org.get(key))
+        r = DisplayJobs.jobs(job)
+        cleaned = cleanup(r)
+        for item in range(len(cleaned)):
+            if cleaned[item] == "name":
+                temp.append(cleaned[item + 1])
+        for item in range(len(cleaned)):
+            if cleaned[item] == "id":
+                temp2.append(cleaned[item + 1])
+
+        for item in range(len(temp)):
+            jobs[temp[item]] = temp2[item]
+
+    return jobs
 
 def createarepo():
     access = token()
@@ -86,64 +170,25 @@ def createarepo():
         payload["MonthlyDayNumber"] = monthlydaynumber
         payload["MonthlyDayOfWeek"] = monthlydayofweek
 
-    repo = CreateRepo(payload, access)
-    r = CreateRepo.create(repo)
+    repo = Creation(payload, access)
+    r = Creation.repo(repo)
 
     print(r)
 
 
-def displayrepos():
-    access = token()
-
-    repo = DisplayRepo(access)
-    r = DisplayRepo.displayRepos(repo)
-    cleaned = cleanup(r)
-
-    repos = []
-    for item in range(len(cleaned)):
-        if cleaned[item] == "name":
-            repos.append(cleaned[item + 1])
-
-    print(repos)
-
-
-def displayorgs():
-    access = token()
-
-    repo = DisplayRepo(access)
-    r = DisplayRepo.displayRepos(repo)
-    cleaned = cleanup(r)
-
-    repoid = []
-    for item in range(len(cleaned)):
-        if cleaned[item] == "id":
-            repoid.append(cleaned[item + 1])
-
-    orgs = []
-    for item in range(len(repoid)):
-        org = GetOrgs(access, repoid[item])
-        r = GetOrgs.orgs(org)
-
-        cleaned = cleanup(r)
-        if len(cleaned) > 1:
-            orgs.append(cleaned[1])
-
-    print(orgs)
-
-
 def createorg():
-    access = Token()
+    access = token()
     payload = {}
-    excahngeOnlineSettings = {}
+    exchangeOnlineSettings = {}
     sharePointOnlineSettings = {}
 
-    type = input("Type of org (Office365, OnPremises, Hybrid):\t")
-    region = input("Microsoft Azure region (Worldwide, China):\t")
+    #    type = input("Type of org (Office365, OnPremises, Hybrid):\t")
+    #    region = input("Microsoft Azure region (Worldwide, China):\t")
     isExchangeOnline = input("Add an Exchange Online org (True or False):\t").lower()
     isSharePointOnline = input("Add a SharePoint Online org (True or False):\t").lower()
 
-    payload["type"] = type
-    payload["region"] = region
+    payload["type"] = "Office365"
+    payload["region"] = "Worldwide"
     payload["isExchangeOnline"] = isExchangeOnline
     payload["isSharePointOnline"] = isSharePointOnline
 
@@ -153,61 +198,208 @@ def createorg():
         grantAdminAccessEO = input("Give admin access:\t")
         useMFAEO = input("Use MFA:\t")
         customVeeamEO = input("Use custom Veeam AD application:\t")
-        excahngeOnlineSettings["account"] = accountEO
-        excahngeOnlineSettings["password"] = passwordEO
-        excahngeOnlineSettings["grantAdminAccess"] = grantAdminAccessEO
-        excahngeOnlineSettings["useMFA"] = useMFAEO
-        excahngeOnlineSettings["useCustomVeeamAADApplication"] = customVeeamEO
-        payload["ExchangeOnlineSettings"] = excahngeOnlineSettings
+        exchangeOnlineSettings["account"] = accountEO
+        exchangeOnlineSettings["password"] = passwordEO
+        exchangeOnlineSettings["grantAdminAccess"] = grantAdminAccessEO
+        exchangeOnlineSettings["useMFA"] = useMFAEO
+        exchangeOnlineSettings["useCustomVeeamAADApplication"] = customVeeamEO
+        payload["ExchangeOnlineSettings"] = exchangeOnlineSettings
 
     if isSharePointOnline == "true":
-        accountSP = input("Account:\t")
-        passwordSP = input("Password:\t")
+        if isExchangeOnline == "true":
+            samelogin = input("Use same login details as Exchange Online?\t")
+            if samelogin == "True":
+                sharePointOnlineSettings["account"] = exchangeOnlineSettings.get("account")
+                sharePointOnlineSettings["password"] = exchangeOnlineSettings.get("password")
+            else:
+                accountSP = input("Account:\t")
+                passwordSP = input("Password:\t")
+                sharePointOnlineSettings["account"] = accountSP
+                sharePointOnlineSettings["password"] = passwordSP
+
+        else:
+            accountSP = input("Account:\t")
+            passwordSP = input("Password:\t")
+            sharePointOnlineSettings["account"] = accountSP
+            sharePointOnlineSettings["password"] = passwordSP
+
         grantAdminAccessSP = input("Give admin access:\t")
         useMFASP = input("Use MFA:\t")
         customVeeamSP = input("Use custom Veeam AD application:\t")
-        sharePointOnlineSettings["account"] = accountSP
-        sharePointOnlineSettings["password"] = passwordSP
         sharePointOnlineSettings["grantAdminAccess"] = grantAdminAccessSP
         sharePointOnlineSettings["useMFA"] = useMFASP
         sharePointOnlineSettings["useCustomVeeamAADApplication"] = customVeeamSP
         payload["SharePointOnlineSettings"] = sharePointOnlineSettings
 
-    org = CreateOrg(payload, access)
-    r = CreateOrg.create(org)
+    org = Creation(payload, access)
+    r = Creation.org(org)
 
     print(r)
 
-
-def removeRepo():
+def displayrepos():
     access = token()
+    repos = getrepodict(access)
 
-    repo = DisplayRepo(access)
-    r = DisplayRepo.displayRepos(repo)
-    cleaned = cleanup(r)
+    print(repos)
 
-    repos = {}
-    temp = []
-    temp2 = []
-    for item in range(len(cleaned)):
-        if cleaned[item] == "name":
-            temp.append(cleaned[item + 1])
-    for item in range(len(cleaned)):
-        if cleaned[item] == "id":
-            temp2.append(cleaned[item + 1])
 
-    for item in range(len(temp)):
-        repos[temp[item]] = temp2[item]
+def displayorgs():
+    access = token()
+    org = getorgdict(access)
 
+    print(org)
+
+
+def removerepo():
+    access = token()
+    repos = getrepodict(access)
     print(repos)
 
     remove = input("What repo would you like to remove?\t")
 
-    rem = RemoveRepo(access, repos.get(remove))
-    r = RemoveRepo.remove(rem)
+    try:
+        rem = Removal(access, repos.get(remove))
+        r = Removal.repo(rem)
+
+        print(r)
+    except ValueError:
+        print("Repo Deleted")
+    except TypeError:
+        print("Repo doesn't exist")
+
+
+def removeorg():
+    access = token()
+    org = getorgdict(access)
+    print(org)
+
+    remove = input("What org would you like to remove?\t")
+
+    try:
+        rem = Removal(access, org.get(remove))
+        r = Removal.org(rem)
+
+        print(r)
+    except ValueError:
+        print("Org Deleted")
+    except TypeError:
+        print("Org doesn't exist")
+
+
+def displayorgjobs():
+    access = token()
+    org = getorgdict(access)
+    print(org)
+
+    ans = input("See jobs for what org?\t")
+    job = DisplayJobs(access, org.get(ans))
+    r = DisplayJobs.jobs(job)
 
     print(r)
 
+
+def createjob():
+    payload = {}
+    schedulepolicy = {}
+
+    access = token()
+    proxyid = proxy(access)
+    org = getorgdict(access)
+    repo = getrepodict(access)
+
+    schedulepolicy["BackupWindowEnabled"] = "False"
+    schedulepolicy["Type"] = "Periodically"
+    schedulepolicy["PeriodicInterval"] = "Minutes5"
+    schedulepolicy["RetryEnabled"] = "True"
+    schedulepolicy["RetryNumber"] = "3"
+    schedulepolicy["RetryWaitInterval"] = "5"
+
+    print(org)
+    orgid = input("Create a job for what org?\t")
+    print(repo)
+    repoid = input("Backed up to what repository?\t")
+    orgid = org.get(orgid)
+    name = input("Name:\t")
+    description = input("Desciption:\t")
+
+    payload["Name"] = name
+    payload["Description"] = description
+    payload["BackupType"] = "entireOrganization"
+    payload["SchedulePolicy"] = schedulepolicy
+    payload["ProxyId"] = proxyid
+    payload["RepositoryId"] = repo.get(repoid)
+    payload["RunNow"] = "True"
+
+    job = Organization(access, orgid, payload)
+    r = Organization.createjob(job)
+
+    print(r)
+
+
+def displayalljobs():
+    access = token()
+    jobs = getalljobs(access)
+
+    print(jobs)
+
+
+def modifyjobsettings():
+    payload = {}
+    schedulepolicy = {}
+
+    access = token()
+    proxyid = proxy(access)
+    jobs = getalljobs(access)
+    repos = getrepodict(access)
+    print(jobs)
+    ans = input("Modify what job?\t")
+    jobid = jobs.get(ans)
+
+    name = input("Change name to what?\t")
+    description = input("New description:\t")
+    print(repos)
+    repo = input("Backup to what repo:\t")
+
+    schedulepolicy["BackupWindowEnabled"] = "False"
+    schedulepolicy["Type"] = "Periodically"
+    schedulepolicy["PeriodicallyEvery"] = "Minutes5"
+    schedulepolicy["RetryEnabled"] = "True"
+    schedulepolicy["RetryNumber"] = "3"
+    schedulepolicy["RetryWaitInterval"] = "5"
+
+    payload["Name"] = name
+    payload["Description"] = description
+    payload["BackupType"] = "entireOrganization"
+    payload["SchedulePolicy"] = schedulepolicy
+    payload["ProxyId"] = proxyid
+    payload["RepositoryId"] = repos.get(repo)
+    payload["RunNow"] = "True"
+
+    mod = Organization(access, jobid, payload)
+    r = Organization.modifyjob(mod)
+
+    print(r)
+
+
+def managejobs():
+    payload = {}
+    access = token()
+    jobs = getalljobs(access)
+    print(jobs)
+    ans = input("Modify what job?\t")
+    jobid = jobs.get(ans)
+
+    ans = input("Perform what action?\nenable\nstart\nstop\ndisable\nexplore\n")
+    if ans == "explore":
+        explorepayload = {"Datetime": "2012-07-20T10:54:40.2794046Z", "type": "vex"}
+        payload[ans] = explorepayload
+
+    payload[ans] = "null"
+
+    man = Organization(access, jobid, payload)
+    r = Organization.managejob(man)
+
+    print(r)
 
 warnings.filterwarnings("ignore")
 welcomeScreen()

@@ -5,7 +5,7 @@ import datetime
 import re
 
 
-class Token():
+class Token:
 
     def __init__(self):
         self.url = os.environ.get("VEEAM_URL")
@@ -63,13 +63,13 @@ class Token():
                     file.close()
                 return access_token
             else:
-                return str(oldtoken[1])
+                return oldtoken[1]
 
         except IOError:
             print("Stop")
 
 
-class Proxies():
+class Proxies:
 
     def __init__(self, token):
         self.token = token
@@ -87,14 +87,14 @@ class Proxies():
         return response
 
 
-class DisplayRepo():
+class Display:
 
     def __init__(self, token):
         self.token = token
         self.url = os.environ.get("VEEAM_URL")
         self.header = os.environ.get("VEEAM_HEADER_AUTH")
 
-    def displayRepos(self):
+    def repo(self):
         repourl = self.url + "BackupRepositories"
         header_dict = json.loads(self.header)
         accessnew = "Bearer " + self.token
@@ -104,8 +104,18 @@ class DisplayRepo():
 
         return response
 
+    def org(self):
+        orgurl = self.url + "Organizations"
+        header_dict = json.loads(self.header)
+        accessnew = "Bearer " + self.token
+        header_dict["Authorization"] = accessnew
 
-class CreateRepo():
+        response = requests.get(orgurl, verify=False, headers=header_dict).json()
+
+        return response
+
+
+class Creation:
 
     def __init__(self, payload, token):
         self.payload = payload
@@ -113,7 +123,7 @@ class CreateRepo():
         self.url = os.environ.get("VEEAM_URL")
         self.header = os.environ.get("VEEAM_HEADER_AUTH")
 
-    def create(self):
+    def repo(self):
         createurl = self.url + "BackupRepositories"
         header_dict = json.loads(self.header)
         accessnew = "Bearer " + self.token
@@ -124,35 +134,7 @@ class CreateRepo():
 
         return response
 
-
-class GetOrgs():
-
-    def __init__(self, token, repoid):
-        self.token = token
-        self.repoid = repoid
-        self.url = os.environ.get("VEEAM_URL")
-        self.header = os.environ.get("VEEAM_HEADER_AUTH")
-
-    def orgs(self):
-        orgurl = self.url + "BackupRepositories/" + self.repoid + "/BackedUpOrganizations"
-        header_dict = json.loads(self.header)
-        accessnew = "Bearer " + self.token
-        header_dict["Authorization"] = accessnew
-
-        response = requests.get(orgurl, verify=False, headers=header_dict).json()
-
-        return response
-
-
-class CreateOrg():
-
-    def __init__(self, payload, token):
-        self.payload = payload
-        self.token = token
-        self.url = os.environ.get("VEEAM_URL")
-        self.header = os.environ.get("VEEAM_HEADER_AUTH")
-
-    def create(self):
+    def org(self):
         orgurl = self.url + "Organizations"
         header_dict = json.loads(self.header)
         accessnew = "Bearer " + self.token
@@ -164,7 +146,7 @@ class CreateOrg():
         return response
 
 
-class RemoveRepo():
+class Removal:
 
     def __init__(self, token, removeid):
         self.token = token
@@ -172,7 +154,7 @@ class RemoveRepo():
         self.url = os.environ.get("VEEAM_URL")
         self.header = os.environ.get("VEEAM_HEADER_AUTH")
 
-    def remove(self):
+    def repo(self):
         remurl = self.url + "BackupRepositories/" + self.removeid
         header_dict = json.loads(self.header)
         accessnew = "Bearer " + self.token
@@ -180,5 +162,79 @@ class RemoveRepo():
         header_dict["Content-Type"] = "application/json"
 
         response = requests.delete(remurl, verify=False, headers=header_dict).json()
+
+        return response
+
+    def org(self):
+        remurl = self.url + "Organizations/" + self.removeid
+        header_dict = json.loads(self.header)
+        accessnew = "Bearer " + self.token
+        header_dict["Authorization"] = accessnew
+        header_dict["Content-Type"] = "application/json"
+
+        response = requests.delete(remurl, verify=False, headers=header_dict).json()
+
+        return response
+
+
+class DisplayJobs:
+
+    def __init__(self, token, orgid):
+        self.token = token
+        self.orgid = orgid
+        self.url = os.environ.get("VEEAM_URL")
+        self.header = os.environ.get("VEEAM_HEADER_AUTH")
+
+    def jobs(self):
+        joburl = self.url + "Organizations/" + self.orgid + "/Jobs"
+        header_dict = json.loads(self.header)
+        accessnew = "Bearer " + self.token
+        header_dict["Authorization"] = accessnew
+        header_dict["Content-Type"] = "application/json"
+
+        response = requests.get(joburl, verify=False, headers=header_dict).json()
+
+        return response
+
+
+class Organization:
+
+    def __init__(self, token, id, payload):
+        self.token = token
+        self.id = id
+        self.payload = payload
+        self.url = os.environ.get("VEEAM_URL")
+        self.header = os.environ.get("VEEAM_HEADER_AUTH")
+
+    def createjob(self):
+        joburl = self.url + "Organizations/" + self.id + "/Jobs"
+        header_dict = json.loads(self.header)
+        accessnew = "Bearer " + self.token
+        header_dict["Authorization"] = accessnew
+        header_dict["Content-Type"] = "application/json"
+
+        response = requests.post(joburl, verify=False, data=json.dumps(self.payload), headers=header_dict).json()
+
+        return response
+
+    def modifyjob(self):
+        joburl = self.url + "Jobs/" + self.id
+        header_dict = json.loads(self.header)
+        accessnew = "Bearer " + self.token
+        header_dict["Authorization"] = accessnew
+        header_dict["Content-Type"] = "application/json"
+
+        response = requests.put(joburl, verify=False, data=json.dumps(self.payload), headers=header_dict).json()
+
+        return response
+
+    def managejob(self):
+        joburl = self.url + "Jobs/" + self.id + "/Action"
+        header_dict = json.loads(self.header)
+        accessnew = "Bearer " + self.token
+        header_dict["Authorization"] = accessnew
+        header_dict["Content-Type"] = "application/json"
+
+        response = requests.post(joburl, verify=False, data=json.dumps(self.payload), headers=header_dict).json()
 
         return response
