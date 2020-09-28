@@ -1,4 +1,4 @@
-Program that can make several different changes to a Veeam database through an API.
+Program that can make several different changes to Veeam backups through their API.
 
 Rough proof-of-concept at the moment but it can do such things as: Create an org/repo/jobs, display all orgs/repos/jobs and delete orgs/repos/jobs.
 
